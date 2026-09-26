@@ -1,0 +1,42 @@
+name: Generate activation key
+
+on:
+  workflow_dispatch:
+    inputs:
+      device_code:
+        description: 'Device code from the app (e.g. ABC-123-XYZ)'
+        required: true
+        type: string
+      customer_name:
+        description: 'Customer name (optional, for your records)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  add-key:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate key and add to keys.json
+        env:
+          MLLP_SECRET: ${{ secrets.MLLP_SECRET }}
+          DEVICE_CODE: ${{ inputs.device_code }}
+          CUSTOMER_NAME: ${{ inputs.customer_name }}
+        run: node .github/add-key.js
+
+      - name: Commit and publish
+        run: |
+          git config user.name "key-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add keys.json
+          git commit -m "Add key for ${{ inputs.device_code }}"
+          git push
